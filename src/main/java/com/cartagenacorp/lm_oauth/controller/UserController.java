@@ -1,54 +1,41 @@
 package com.cartagenacorp.lm_oauth.controller;
 
-import com.cartagenacorp.lm_oauth.dto.UserDTO;
-import com.cartagenacorp.lm_oauth.entity.User;
-import com.cartagenacorp.lm_oauth.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
+import com.cartagenacorp.lm_oauth.repository.UserRepository;
+import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/oauth/users")
+@RequestMapping("/api/oauth/")
 @CrossOrigin(origins = "*")
 public class UserController {
+
     @Autowired
-    private UserService userService;
+    private UserRepository userRepository;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
-        try {
-            return ResponseEntity.ok(userService.register(userDTO));
-        } catch (ResponseStatusException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getReason());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
-        }
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
+    @GetMapping("/validate/{userId}")
+    public ResponseEntity<Boolean> validateUser(@PathVariable UUID userId) {
+        boolean exists = userRepository.existsById(userId);
+        return ResponseEntity.ok(exists);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
-        try {
-            return ResponseEntity.ok(userService.login(userDTO));
-        } catch (ResponseStatusException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getReason());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
-        }
-    }
+    @GetMapping("/token")
+    public ResponseEntity<String> getUserIdFromToken(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
 
-    @GetMapping("/auth/{userId}")
-    public ResponseEntity<?> authByUUID(@PathVariable UUID userId) {
-        try {
-            return ResponseEntity.ok(userService.authByUUID(userId));
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
+            if (jwtTokenUtil.validateToken(token)) {
+                UUID userId = jwtTokenUtil.getUserUUIDFromToken(token);
+                return ResponseEntity.ok(userId.toString());
+            }
         }
+
+        return ResponseEntity.badRequest().build();
     }
 }
