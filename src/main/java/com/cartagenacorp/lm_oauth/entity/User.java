@@ -19,4 +19,11 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    private String firstName;
+
+    private String lastName;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
 }
