@@ -3,10 +3,7 @@ import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
@@ -18,9 +15,11 @@ public class JwtTokenUtil {
     @Value("${app.jwt.expiration}")
     private long expiration;
 
-    public String generateToken(String userId, String email) {
+    public String generateToken(String userId, String email, String role, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
+        claims.put("role", role);
+        claims.put("permissions", permissions);
         return createToken(claims, userId);
     }
 
