@@ -12,7 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -94,6 +97,51 @@ public class UserController {
                 } catch (Exception ex){
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
                 }
+            }
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @GetMapping("/users/resolve")
+    public ResponseEntity<UUID> resolveUser(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String identifier) {
+
+        if (identifier == null || identifier.isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
+        String decodedIdentifier = URLDecoder.decode(identifier, StandardCharsets.UTF_8);
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtTokenUtil.validateToken(token)) {
+
+                String lower = decodedIdentifier.trim().toLowerCase();
+
+                Optional<User> userOpt = userRepository.findAll().stream()
+                        .filter(user -> {
+                            String email = user.getEmail() != null ? user.getEmail().trim().toLowerCase() : "";
+                            String fullNameDot = (user.getFirstName() != null && user.getLastName() != null)
+                                    ? (user.getFirstName().trim().toLowerCase() + "." + user.getLastName().trim().toLowerCase())
+                                    : "";
+                            String fullNameSpace = (user.getFirstName() != null && user.getLastName() != null)
+                                    ? (user.getFirstName().trim().toLowerCase() + " " + user.getLastName().trim().toLowerCase())
+                                    : "";
+                            String firstName = user.getFirstName() != null ? user.getFirstName().trim().toLowerCase() : "";
+                            String lastName = user.getLastName() != null ? user.getLastName().trim().toLowerCase() : "";
+
+
+                            return lower.equals(email)
+                                    || lower.equals(fullNameDot)
+                                    || lower.equals(fullNameSpace)
+                                    || lower.equals(firstName)
+                                    || lower.equals(lastName);
+                        })
+                        .findFirst();
+
+                return userOpt.map(user -> ResponseEntity.ok(user.getId()))
+                        .orElse(ResponseEntity.notFound().build());
             }
         }
         return ResponseEntity.badRequest().build();
