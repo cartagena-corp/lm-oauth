@@ -25,6 +25,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String email = oAuth2User.getAttribute("email");
         String firstName = oAuth2User.getAttribute("given_name");
         String lastName = oAuth2User.getAttribute("family_name");
+        String picture = oAuth2User.getAttribute("picture");
 
         Optional<User> usuarioExistente = userRepository.findByGoogleId(googleId);
         User user;
@@ -34,12 +35,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user.setEmail(email);
             user.setFirstName(firstName);
             user.setLastName(lastName);
+            user.setPicture(picture);
         } else {
             user = new User();
             user.setGoogleId(googleId);
             user.setEmail(email);
             user.setFirstName(firstName);
             user.setLastName(lastName);
+            user.setPicture(picture);
         }
 
         userRepository.save(user);

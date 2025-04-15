@@ -37,18 +37,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
             String token = requestTokenHeader.substring(7);
 
-            if (jwtTokenUtil.validateToken(token)) {
-                UUID userId = jwtTokenUtil.getUserUUIDFromToken(token);
+            try {
+                if (jwtTokenUtil.validateToken(token)) {
+                    UUID userId = jwtTokenUtil.getUserUUIDFromToken(token);
 
-                Optional<User> user = userRepository.findById(userId);
+                    Optional<User> user = userRepository.findById(userId);
 
-                if (user.isPresent()) {
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            user.get(), null, new ArrayList<>());
+                    if (user.isPresent()) {
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                user.get(), null, new ArrayList<>());
 
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.getWriter().write("Invalid user ID in token");
+                        return;
+                    }
+                } else {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Invalid or expired token");
+                    return;
                 }
+            } catch (Exception e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token validation failed: " + e.getMessage());
+                return;
             }
         }
 

@@ -15,9 +15,10 @@ public class JwtTokenUtil {
     @Value("${app.jwt.expiration}")
     private long expiration;
 
-    public String generateToken(String userId, String email, String role, List<String> permissions) {
+    public String generateToken(String userId, String email, String picture, String role, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
+        claims.put("picture", picture);
         claims.put("role", role);
         claims.put("permissions", permissions);
         return createToken(claims, userId);
