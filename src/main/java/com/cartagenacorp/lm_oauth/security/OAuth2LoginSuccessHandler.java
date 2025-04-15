@@ -11,6 +11,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -35,6 +37,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Autowired
     private RefreshTokenService refreshTokenService;
 
+    @Value("${app.jwt.refreshExpiration}")
+    private long refreshExpirationMs;
+
+    @Value("${app.oauth2.redirect-url}")
+    private String oauth2RedirectUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws IOException, ServletException {
@@ -53,15 +61,18 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String token = jwtTokenUtil.generateToken(userId.toString(), email, picture, role, permissions);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userId);
 
-//        // Redirigir al frontend con el token
-//        String redirectUrl = "http://tu-frontend-url/oauth2/redirect?token=" + token;
-//        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
-        // Configuración de la respuesta HTTP
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(new ObjectMapper().writeValueAsString(
-                Map.of("token", token, "refreshToken", refreshToken.getToken())
-        ));
-        response.getWriter().flush();
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken.getToken())
+                .httpOnly(true)
+                .secure(true) // solo si estás usando HTTPS
+                .path("/")
+                .maxAge(refreshExpirationMs / 1000)
+                .sameSite("Strict")
+                .build();
+
+        response.setHeader("Set-Cookie", cookie.toString());
+
+        // Redirigir al frontend con el token
+        String redirectUrl = oauth2RedirectUrl + "?token=" + token;
+        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

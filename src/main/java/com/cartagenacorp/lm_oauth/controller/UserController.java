@@ -11,6 +11,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,7 +27,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/oauth/")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserRepository userRepository;
@@ -64,7 +64,11 @@ public class UserController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody String refreshToken) {
+    public ResponseEntity<?> refreshToken(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token missing"));
+        }
+
         return refreshTokenService.findByToken(refreshToken)
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
@@ -77,8 +81,7 @@ public class UserController {
                             roleService.getPermissionsByRole(user.getRole())
                     );
                     return ResponseEntity.ok(Map.of(
-                            "accessToken", newJwt,
-                            "refreshToken", refreshToken
+                            "accessToken", newJwt
                     ));
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -86,11 +89,27 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody String refreshToken) {
+    public ResponseEntity<?> logout(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().body("Refresh token not found in cookie");
+        }
+
         boolean deleted = refreshTokenService.deleteByToken(refreshToken);
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+
         return deleted ?
-                ResponseEntity.ok("Logged out successfully") :
-                ResponseEntity.status(HttpStatus.NOT_FOUND).body("Refresh token not found or already invalidated");
+                ResponseEntity.ok()
+                        .header("Set-Cookie", deleteCookie.toString())
+                        .body("Logged out successfully") :
+                ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .header("Set-Cookie", deleteCookie.toString())
+                        .body("Refresh token not found or already invalidated");
     }
 
     @GetMapping("/users")
