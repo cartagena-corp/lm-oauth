@@ -2,21 +2,19 @@ package com.cartagenacorp.lm_oauth.controller;
 
 import com.cartagenacorp.lm_oauth.entity.RefreshToken;
 import com.cartagenacorp.lm_oauth.entity.User;
+import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import com.cartagenacorp.lm_oauth.service.RefreshTokenService;
 import com.cartagenacorp.lm_oauth.service.RoleService;
 import com.cartagenacorp.lm_oauth.service.UserService;
 import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -76,6 +74,8 @@ public class UserController {
                     String newJwt = jwtTokenUtil.generateToken(
                             user.getId().toString(),
                             user.getEmail(),
+                            user.getFirstName(),
+                            user.getLastName(),
                             user.getPicture(),
                             user.getRole(),
                             roleService.getPermissionsByRole(user.getRole())
@@ -117,22 +117,18 @@ public class UserController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+    @GetMapping("/user/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable String id) {
+        UUID uuid = UUID.fromString(id);
+        UserDtoResponse user = userService.getUserById(uuid);
+        return ResponseEntity.ok(user);
+    }
+
     @PutMapping("/user/{id}/role")
     public ResponseEntity<?> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
-        try {
-            UUID uuid = UUID.fromString(id);
-            userService.assignRoleToUser(uuid, roleName);
-            return ResponseEntity.ok().build();
-        } catch (ResponseStatusException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
-        } catch (IllegalArgumentException ex){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user ID format");
-        } catch (DataIntegrityViolationException | ConstraintViolationException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("The role could not be assigned because it does not exist or is incorrectly related");
-        } catch (Exception ex){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
-        }
+        UUID uuid = UUID.fromString(id);
+        userService.assignRoleToUser(uuid, roleName);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users/resolve")
