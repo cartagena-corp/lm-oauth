@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -37,5 +39,11 @@ public class UserService {
         return userMapper.toDto(user);
     }
 
-
+    public List<UserDtoResponse> getUsersByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<User> users = userRepository.findAllById(ids);
+        return users.stream().map(userMapper::toDto).toList();
+    }
 }

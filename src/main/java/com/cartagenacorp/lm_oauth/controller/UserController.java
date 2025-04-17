@@ -124,6 +124,13 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @PostMapping("/users/batch")
+    public ResponseEntity<List<UserDtoResponse>> getUsersByIds(@RequestBody List<String> ids) {
+        List<UUID> uuidList = ids.stream().map(UUID::fromString).toList();
+        List<UserDtoResponse> users = userService.getUsersByIds(uuidList);
+        return ResponseEntity.ok(users);
+    }
+
     @PutMapping("/user/{id}/role")
     public ResponseEntity<?> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
         UUID uuid = UUID.fromString(id);
