@@ -51,6 +51,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         UUID userId = oAuth2User.getUserId();
         String email = oAuth2User.getEmail();
+        String givenName = oAuth2User.getFirstName();
+        String familyName = oAuth2User.getLastName();
         String picture = oAuth2User.getPicture();
 
         User user = userRepository.findById(userId).orElseThrow();
@@ -58,7 +60,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String role = user.getRole();
         List<String> permissions = roleService.getPermissionsByRole(role);
 
-        String token = jwtTokenUtil.generateToken(userId.toString(), email, picture, role, permissions);
+        String token = jwtTokenUtil.generateToken(userId.toString(), email, givenName, familyName, picture, role, permissions);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userId);
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken.getToken())
