@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -171,5 +172,15 @@ public class UserController {
 
         return userOpt.map(user -> ResponseEntity.ok(user.getId()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<String> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
+        try {
+            userService.importUsers(file);
+            return ResponseEntity.ok("Users imported successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error importing users: " + e.getMessage());
+        }
     }
 }

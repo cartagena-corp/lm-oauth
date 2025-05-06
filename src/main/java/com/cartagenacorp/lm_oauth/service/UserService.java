@@ -4,11 +4,17 @@ import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
 import com.cartagenacorp.lm_oauth.mapper.UserMapper;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -45,5 +51,39 @@ public class UserService {
         }
         List<User> users = userRepository.findAllById(ids);
         return users.stream().map(userMapper::toDto).toList();
+    }
+
+    public void importUsers(MultipartFile file) throws IOException {
+        List<User> users = new ArrayList<>();
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                Cell emailCell = row.getCell(0);
+                if (emailCell == null || emailCell.getCellType() != CellType.STRING) continue;
+
+                String email = emailCell.getStringCellValue().trim();
+
+                if (!userRepository.existsByEmail(email)) {
+                    User user = new User();
+                    user.setEmail(email);
+                    user.setFirstName(null);
+                    user.setLastName(null);
+                    user.setGoogleId(null);
+                    user.setPicture(null);
+                    user.setRole(null);
+
+                    users.add(user);
+                }
+            }
+        }
+
+        userRepository.saveAll(users);
     }
 }
