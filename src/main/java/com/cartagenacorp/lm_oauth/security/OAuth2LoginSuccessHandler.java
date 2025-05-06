@@ -6,7 +6,6 @@ import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import com.cartagenacorp.lm_oauth.service.RefreshTokenService;
 import com.cartagenacorp.lm_oauth.service.RoleService;
 import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Component

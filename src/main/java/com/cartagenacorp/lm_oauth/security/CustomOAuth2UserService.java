@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -27,22 +28,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String lastName = oAuth2User.getAttribute("family_name");
         String picture = oAuth2User.getAttribute("picture");
 
-        Optional<User> usuarioExistente = userRepository.findByGoogleId(googleId);
-        User user;
+        Optional<User> usuarioExistente = userRepository.findByEmail(email);
 
-        if (usuarioExistente.isPresent()) {
-            user = usuarioExistente.get();
-            user.setEmail(email);
-            user.setFirstName(firstName);
-            user.setLastName(lastName);
-            user.setPicture(picture);
-        } else {
-            user = new User();
+        if (usuarioExistente.isEmpty()) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("unauthorized_user"),
+                    "The user is not authorized. Contact the administrator.");
+        }
+
+        User user = usuarioExistente.get();
+        user.setEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setPicture(picture);
+        if (user.getGoogleId() == null || user.getGoogleId().isEmpty()) {
             user.setGoogleId(googleId);
-            user.setEmail(email);
-            user.setFirstName(firstName);
-            user.setLastName(lastName);
-            user.setPicture(picture);
         }
 
         userRepository.save(user);
