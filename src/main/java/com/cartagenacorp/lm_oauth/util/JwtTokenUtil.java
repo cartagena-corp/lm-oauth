@@ -18,8 +18,8 @@ public class JwtTokenUtil {
     public String generateToken(String userId, String email, String givenName, String familyName, String picture, String role, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
-        claims.put("given_mame", givenName);
-        claims.put("family_mame", familyName);
+        claims.put("given_name", givenName);
+        claims.put("family_name", familyName);
         claims.put("picture", picture);
         claims.put("role", role);
         claims.put("permissions", permissions);
