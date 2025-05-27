@@ -28,7 +28,7 @@ app:
   oauth2:
     redirect-url: https://cartagenacorporation.com/login/callback
   cors:
-    allowed-origins: https://cartagenacorporation.com
+    allowed-origins: https://cartagenacorporation.com,https://www.cartagenacorporation.com
   jwt:
     secret: ${JWT_SECRET}
     expiration: '900000'
