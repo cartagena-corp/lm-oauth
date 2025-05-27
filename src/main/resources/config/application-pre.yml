@@ -20,7 +20,8 @@ spring:
             scope:
               - email
               - profile
-            redirect-uri: https://lm-oauth.cartagenacorporation.com/login/oauth2/code/google
+            redirect-uri: http://localhost:8081/login/oauth2/code/google
+            #redirect-uri: https://lm-oauth.cartagenacorporation.com/login/oauth2/code/google
 server:
   port: 8081
 app:
