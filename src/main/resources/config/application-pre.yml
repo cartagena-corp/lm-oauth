@@ -2,7 +2,7 @@ spring:
   application:
     name: lm-oauth
   datasource:
-    url: jdbc:postgresql://localhost:5433/lamuralla
+    url: jdbc:postgresql://localhost:5432/lamuralla
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
@@ -17,7 +17,9 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope: email,profile
+            scope:
+              - email
+              - profile
             redirect-uri: https://lm-oauth.cartagenacorporation.com/login/oauth2/code/google
 server:
   port: 8081
