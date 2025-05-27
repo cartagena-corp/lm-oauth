@@ -8,7 +8,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    open-in-view: 'false'
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
   security:
     oauth2:
       client:
@@ -19,7 +20,7 @@ spring:
             scope: email,profile
             redirect-uri: https://lm-oauth.cartagenacorporation.com/login/oauth2/code/google
 server:
-  port: '8081'
+  port: 8081
 app:
   oauth2:
     redirect-url: http://tu-frontend-url/oauth2/redirect
