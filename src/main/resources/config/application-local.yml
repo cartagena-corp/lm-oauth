@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: lm-oauth
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lamuralla
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: 'false'
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: email,profile
+            redirect-uri: http://localhost:8081/login/oauth2/code/google
+server:
+  port: '8081'
+app:
+  oauth2:
+    redirect-url: http://tu-frontend-url/oauth2/redirect
+  cors:
+    allowed-origins: http://localhost:3000
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: '900000'
+    refreshExpiration: '604800000'
+role:
+  service:
+    url: http://localhost:8085/api/roles
