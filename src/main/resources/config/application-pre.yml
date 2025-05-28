@@ -35,4 +35,4 @@ app:
     refreshExpiration: '604800000'
 role:
   service:
-    url: https://lm-users.cartagenacorporation.com/api/roles
+    url: http://localhost:8085/api/roles
