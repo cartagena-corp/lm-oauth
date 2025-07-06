@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.controller;
 
+import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.RefreshToken;
 import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
@@ -172,6 +173,12 @@ public class UserController {
 
         return userOpt.map(user -> ResponseEntity.ok(user.getId()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/add-user")
+    public ResponseEntity<String> addUser(@RequestBody UserDTO userDTO) {
+        userService.addUser(userDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body("User added successfully");
     }
 
     @PostMapping("/import")

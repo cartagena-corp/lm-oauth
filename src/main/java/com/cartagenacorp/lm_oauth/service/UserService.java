@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.service;
 
+import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
 import com.cartagenacorp.lm_oauth.mapper.UserMapper;
@@ -51,6 +52,13 @@ public class UserService {
         }
         List<User> users = userRepository.findAllById(ids);
         return users.stream().map(userMapper::toDto).toList();
+    }
+
+    public void addUser(UserDTO userDTO) {
+        if (userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with this email already exists");
+        }
+        userRepository.save(userMapper.userDTOToUser(userDTO));
     }
 
     public void importUsers(MultipartFile file) throws IOException {
