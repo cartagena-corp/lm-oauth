@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.service;
 
+import com.cartagenacorp.lm_oauth.dto.PageResponseDTO;
 import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
@@ -8,6 +9,9 @@ import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +34,15 @@ public class UserService {
     public UserService(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+    }
+
+    public PageResponseDTO<UserDtoResponse> searchUsers(String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> result = userRepository.searchUsers(search, pageable);
+
+        Page<UserDtoResponse> dtoPage = result.map(user -> userMapper.toDto(user));
+
+        return new PageResponseDTO<>(dtoPage);
     }
 
     public void assignRoleToUser(UUID userId, String roleName) {

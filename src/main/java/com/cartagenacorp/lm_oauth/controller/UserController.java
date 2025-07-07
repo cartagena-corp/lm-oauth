@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.controller;
 
+import com.cartagenacorp.lm_oauth.dto.PageResponseDTO;
 import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.RefreshToken;
 import com.cartagenacorp.lm_oauth.entity.User;
@@ -115,8 +116,13 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userRepository.findAll());
+    public ResponseEntity<PageResponseDTO<UserDtoResponse>> getAllUsers(
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponseDTO<UserDtoResponse> result = userService.searchUsers(search, page, size);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/user/{id}")
