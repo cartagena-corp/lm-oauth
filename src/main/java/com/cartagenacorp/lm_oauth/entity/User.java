@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -30,4 +32,7 @@ public class User {
     private String picture;
 
     private String role;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }
