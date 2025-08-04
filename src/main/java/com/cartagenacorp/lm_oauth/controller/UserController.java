@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.controller;
 
+import com.cartagenacorp.lm_oauth.dto.NotificationResponse;
 import com.cartagenacorp.lm_oauth.dto.PageResponseDTO;
 import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.RefreshToken;
@@ -7,10 +8,11 @@ import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import com.cartagenacorp.lm_oauth.service.RefreshTokenService;
-import com.cartagenacorp.lm_oauth.service.RoleService;
+import com.cartagenacorp.lm_oauth.service.RoleExternalService;
 import com.cartagenacorp.lm_oauth.service.UserService;
+import com.cartagenacorp.lm_oauth.util.ConstantUtil;
 import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.cartagenacorp.lm_oauth.util.ResponseUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -35,29 +37,28 @@ public class UserController {
     private final UserService userService;
     private final JwtTokenUtil jwtTokenUtil;
     private final RefreshTokenService refreshTokenService;
-    private final RoleService roleService;
+    private final RoleExternalService roleExternalService;
 
-    @Autowired
     public UserController(UserRepository userRepository, UserService userService, JwtTokenUtil jwtTokenUtil,
-                          RefreshTokenService refreshTokenService, RoleService roleService) {
+                          RefreshTokenService refreshTokenService, RoleExternalService roleExternalService) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.jwtTokenUtil = jwtTokenUtil;
         this.refreshTokenService = refreshTokenService;
-        this.roleService = roleService;
+        this.roleExternalService = roleExternalService;
     }
 
     @GetMapping("/validate/{userId}")
     public ResponseEntity<Boolean> validateUser(@PathVariable UUID userId) {
-        boolean exists = userRepository.existsById(userId);
+        Boolean exists = userService.validateUser(userId);
         return ResponseEntity.ok(exists);
     }
 
     @GetMapping("/token")
-    public ResponseEntity<String> getUserIdFromToken() {
+    public ResponseEntity<UUID> getUserIdFromToken() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
-        return ResponseEntity.ok(user.getId().toString());
+        return ResponseEntity.ok(user.getId());
     }
 
     @GetMapping("/validate/token")
@@ -82,7 +83,7 @@ public class UserController {
                             user.getLastName(),
                             user.getPicture(),
                             user.getRole(),
-                            roleService.getPermissionsByRole(user.getRole())
+                            roleExternalService.getPermissionsByRole(user.getRole())
                     );
                     return ResponseEntity.ok(Map.of(
                             "accessToken", newJwt
@@ -142,10 +143,12 @@ public class UserController {
 
     @PutMapping("/user/{id}/role")
     @PreAuthorize("hasAuthority('ROLE_CRUD')")
-    public ResponseEntity<?> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
+    public ResponseEntity<NotificationResponse> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
         UUID uuid = UUID.fromString(id);
         userService.assignRoleToUser(uuid, roleName);
-        return ResponseEntity.ok().build();
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResponseUtil.success(ConstantUtil.Success.ROLE_ASSIGNED, HttpStatus.OK));
     }
 
     @GetMapping("/users/resolve")
@@ -184,18 +187,18 @@ public class UserController {
     }
 
     @PostMapping("/add-user")
-    public ResponseEntity<String> addUser(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<NotificationResponse> addUser(@RequestBody UserDTO userDTO) {
         userService.addUser(userDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User added successfully");
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
     }
 
     @PostMapping("/import")
-    public ResponseEntity<String> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
-        try {
-            userService.importUsers(file);
-            return ResponseEntity.ok("Users imported successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error importing users: " + e.getMessage());
-        }
+    public ResponseEntity<NotificationResponse> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
+        userService.importUsers(file);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResponseUtil.success(ConstantUtil.Success.USERS_IMPORT, HttpStatus.OK));
     }
 }

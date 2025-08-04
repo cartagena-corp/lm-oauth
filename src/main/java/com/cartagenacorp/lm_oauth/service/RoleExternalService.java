@@ -2,7 +2,6 @@ package com.cartagenacorp.lm_oauth.service;
 
 import com.cartagenacorp.lm_oauth.dto.PermissionDTO;
 import com.cartagenacorp.lm_oauth.dto.RoleDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +15,13 @@ import java.util.stream.Collectors;
 
 
 @Service
-public class RoleService {
+public class RoleExternalService {
     @Value("${role.service.url}")
     private String roleServiceUrl;
 
     private final RestTemplate restTemplate;
 
-    @Autowired
-    public RoleService(RestTemplate restTemplate) {
+    public RoleExternalService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 

@@ -4,20 +4,20 @@ import com.cartagenacorp.lm_oauth.dto.PageResponseDTO;
 import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
+import com.cartagenacorp.lm_oauth.exceptions.BaseException;
 import com.cartagenacorp.lm_oauth.mapper.UserMapper;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
+import com.cartagenacorp.lm_oauth.util.ConstantUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,32 +30,32 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
-    @Autowired
     public UserService(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
 
+    public Boolean validateUser(UUID userId) {
+        return userRepository.existsById(userId);
+    }
+
     public PageResponseDTO<UserDtoResponse> searchUsers(String search, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> result = userRepository.searchUsers(search, pageable);
-
-        Page<UserDtoResponse> dtoPage = result.map(user -> userMapper.toDto(user));
-
+        Page<UserDtoResponse> dtoPage = result.map(userMapper::toDto);
         return new PageResponseDTO<>(dtoPage);
     }
 
     public void assignRoleToUser(UUID userId, String roleName) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
+                .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
         user.setRole(roleName);
         userRepository.save(user);
     }
 
     public UserDtoResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
         return userMapper.toDto(user);
     }
 
@@ -69,12 +69,12 @@ public class UserService {
 
     public void addUser(UserDTO userDTO) {
         if (userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with this email already exists");
+            throw new BaseException(ConstantUtil.DUPLICATE_EMAIL, HttpStatus.BAD_REQUEST.value());
         }
         userRepository.save(userMapper.userDTOToUser(userDTO));
     }
 
-    public void importUsers(MultipartFile file) throws IOException {
+    public void importUsers(MultipartFile file) {
         List<User> users = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -99,10 +99,11 @@ public class UserService {
                     user.setGoogleId(null);
                     user.setPicture(null);
                     user.setRole(null);
-
                     users.add(user);
                 }
             }
+        } catch (Exception e) {
+            throw new BaseException(ConstantUtil.ERROR_PROCESSING_FILE, HttpStatus.BAD_REQUEST.value());
         }
 
         userRepository.saveAll(users);
