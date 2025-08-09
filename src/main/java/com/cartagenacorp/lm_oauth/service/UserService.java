@@ -15,6 +15,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,10 +31,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final RoleExternalService roleExternalService;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, RoleExternalService roleExternalService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.roleExternalService = roleExternalService;
     }
 
     public Boolean validateUser(UUID userId) {
@@ -47,8 +51,20 @@ public class UserService {
     }
 
     public void assignRoleToUser(UUID userId, String roleName) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String token = null;
+        if (authentication != null) {
+            token = (String) authentication.getCredentials();
+        }
+
+        if (!roleExternalService.roleExists(roleName, token )) {
+            throw new BaseException(ConstantUtil.ROLE_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
         user.setRole(roleName);
         userRepository.save(user);
     }

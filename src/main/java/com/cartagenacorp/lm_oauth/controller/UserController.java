@@ -142,7 +142,7 @@ public class UserController {
     }
 
     @PutMapping("/user/{id}/role")
-    @PreAuthorize("hasAuthority('ROLE_CRUD')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CRUD', 'ROLE_UPDATE')")
     public ResponseEntity<NotificationResponse> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
         UUID uuid = UUID.fromString(id);
         userService.assignRoleToUser(uuid, roleName);
