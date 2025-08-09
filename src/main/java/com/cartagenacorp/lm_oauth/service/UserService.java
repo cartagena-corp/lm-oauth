@@ -47,8 +47,13 @@ public class UserService {
     }
 
     public PageResponseDTO<UserDtoResponse> searchUsers(String search, int page, int size) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+        UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
+
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<User> result = userRepository.searchUsers(search, pageable);
+        Page<User> result = userRepository.searchUsers(search, authenticatedUserOrganizationId, pageable);
         Page<UserDtoResponse> dtoPage = result.map(userMapper::toDto);
         return new PageResponseDTO<>(dtoPage);
     }
@@ -67,20 +72,21 @@ public class UserService {
             throw new BaseException(ConstantUtil.ROLE_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndOrganizationId(userId, authenticatedUserOrganizationId)
                 .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
-
-        if (!user.getOrganizationId().equals(authenticatedUserOrganizationId)) {
-            throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.FORBIDDEN.value());
-        }
 
         user.setRole(roleName);
         userRepository.save(user);
     }
 
     public UserDtoResponse getUserById(UUID id) {
-        User user = userRepository.findById(id)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+        UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
+
+        User user = userRepository.findByIdAndOrganizationId(id, authenticatedUserOrganizationId)
                 .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
         return userMapper.toDto(user);
     }
 
