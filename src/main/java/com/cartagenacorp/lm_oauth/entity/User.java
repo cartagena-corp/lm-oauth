@@ -17,24 +17,31 @@ import java.util.UUID;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Column(name = "first_name")
     private String firstName;
 
+    @Column(name = "last_name")
     private String lastName;
 
     @Column(name = "google_id", unique = true)
     private String googleId;
 
+    @Column(name = "picture")
     private String picture;
 
+    @Column(name = "role")
     private String role;
 
     @CreationTimestamp
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "organization_id")
     private UUID organizationId;
 }

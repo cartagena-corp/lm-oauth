@@ -83,7 +83,8 @@ public class UserController {
                             user.getLastName(),
                             user.getPicture(),
                             user.getRole(),
-                            roleExternalService.getPermissionsByRole(user.getRole())
+                            roleExternalService.getPermissionsByRole(user.getRole()),
+                            user.getOrganizationId()
                     );
                     return ResponseEntity.ok(Map.of(
                             "accessToken", newJwt
@@ -187,6 +188,7 @@ public class UserController {
     }
 
     @PostMapping("/add-user")
+    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_MY_ORGANIZATION')")
     public ResponseEntity<NotificationResponse> addUser(@RequestBody UserDTO userDTO) {
         userService.addUser(userDTO);
         return ResponseEntity
@@ -194,7 +196,17 @@ public class UserController {
                 .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
     }
 
+    @PostMapping("/add-user-with-organization")
+    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_OTHER_ORGANIZATION')")
+    public ResponseEntity<NotificationResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {
+        userService.addUserWithOrganization(userDTO);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
+    }
+
     @PostMapping("/import")
+    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_MY_ORGANIZATION')")
     public ResponseEntity<NotificationResponse> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
         userService.importUsers(file);
         return ResponseEntity

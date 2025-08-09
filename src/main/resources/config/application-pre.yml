@@ -36,3 +36,6 @@ app:
 role:
   service:
     url: http://localhost:8085/api/roles
+organization:
+  service:
+    url: http://localhost:8091/api/organizations

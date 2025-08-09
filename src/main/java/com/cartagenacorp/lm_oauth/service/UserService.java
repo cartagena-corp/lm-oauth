@@ -32,11 +32,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final RoleExternalService roleExternalService;
+    private final OrganizationExternalService organizationExternalService;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper, RoleExternalService roleExternalService) {
+    public UserService(UserRepository userRepository, UserMapper userMapper,
+                       RoleExternalService roleExternalService, OrganizationExternalService organizationExternalService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.roleExternalService = roleExternalService;
+        this.organizationExternalService = organizationExternalService;
     }
 
     public Boolean validateUser(UUID userId) {
@@ -52,6 +55,8 @@ public class UserService {
 
     public void assignRoleToUser(UUID userId, String roleName) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+        UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
 
         String token = null;
         if (authentication != null) {
@@ -64,6 +69,10 @@ public class UserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if (!user.getOrganizationId().equals(authenticatedUserOrganizationId)) {
+            throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.FORBIDDEN.value());
+        }
 
         user.setRole(roleName);
         userRepository.save(user);
@@ -84,13 +93,52 @@ public class UserService {
     }
 
     public void addUser(UserDTO userDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof User authenticatedUser) {
+            UUID organizationId = authenticatedUser.getOrganizationId();
+
+            if (userRepository.existsByEmail(userDTO.getEmail())) {
+                throw new BaseException(ConstantUtil.DUPLICATE_EMAIL, HttpStatus.BAD_REQUEST.value());
+            }
+
+            userDTO.setOrganizationId(organizationId);
+            userRepository.save(userMapper.userDTOToUser(userDTO));
+        }
+        else {
+            throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.UNAUTHORIZED.value());
+        }
+    }
+
+    public void addUserWithOrganization(UserDTO userDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String token = null;
+        if (authentication != null) {
+            token = (String) authentication.getCredentials();
+        }
+
+        if (!organizationExternalService.organizationExists(userDTO.getOrganizationId(), token )) {
+            throw new BaseException(ConstantUtil.ORGANIZATION_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
+        }
+
         if (userRepository.existsByEmail(userDTO.getEmail())) {
             throw new BaseException(ConstantUtil.DUPLICATE_EMAIL, HttpStatus.BAD_REQUEST.value());
         }
+
         userRepository.save(userMapper.userDTOToUser(userDTO));
     }
 
     public void importUsers(MultipartFile file) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
+        UUID organizationId = null;
+
+        if (principal instanceof User authenticatedUser) {
+            organizationId = authenticatedUser.getOrganizationId();
+        }
+
         List<User> users = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -115,6 +163,7 @@ public class UserService {
                     user.setGoogleId(null);
                     user.setPicture(null);
                     user.setRole(null);
+                    user.setOrganizationId(organizationId);
                     users.add(user);
                 }
             }

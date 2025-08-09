@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -47,8 +48,12 @@ public class RoleExternalService {
             }
         } catch (HttpClientErrorException.NotFound ex) {
             logger.warn("Rol no encontrado: {}", role);
+        } catch (ResourceAccessException ex) {
+            logger.warn("El servicio externo no esta disponible: {}",ex.getMessage());
+            throw new BaseException(ConstantUtil.ACCESS_EXCEPTION, HttpStatus.SERVICE_UNAVAILABLE.value());
         } catch (Exception ex) {
             logger.error("Error al obtener los permisos del rol {}: {}", role, ex.getMessage(), ex);
+            throw new RuntimeException("Error al obtener los permisos del rol: " + role, ex);
         }
         return Collections.emptyList();
     }
@@ -76,8 +81,15 @@ public class RoleExternalService {
         } catch (HttpClientErrorException.Unauthorized ex) {
             logger.warn("Token no autorizado al validar el rol {}: {}", role, ex.getMessage());
             throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.UNAUTHORIZED.value());
+        } catch (HttpClientErrorException.Forbidden ex) {
+            logger.warn("No tiene permisos para validar el rol {}: {}", role, ex.getMessage());
+            throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.UNAUTHORIZED.value());
+        } catch (ResourceAccessException ex) {
+            logger.warn("El servicio externo no esta disponible: {}",ex.getMessage());
+            throw new BaseException(ConstantUtil.ACCESS_EXCEPTION, HttpStatus.SERVICE_UNAVAILABLE.value());
         } catch (Exception ex) {
             logger.error("Error al validar el rol {}: {}", role, ex.getMessage(), ex);
+            throw new RuntimeException("Error al validar el rol: " + role, ex);
         }
         return false;
     }

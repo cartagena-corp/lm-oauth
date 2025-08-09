@@ -14,8 +14,10 @@ public class ConstantUtil {
     public static final String INVALID_UUID = "El ID proporcionado no es un UUID válido";
     public static final String DUPLICATE_EMAIL = "El correo electrónico ya está en uso";
     public static final String ROLE_NOT_FOUND = "El rol no existe";
+    public static final String ORGANIZATION_NOT_FOUND = "La organización no existe";
     public static final String ERROR_PROCESSING_FILE = "Error procesando el archivo";
     public static final String INTERNAL_SERVER_ERROR = "Error interno del servidor";
+    public static final String ACCESS_EXCEPTION = "El servicio externo no está disponible o no se pudo acceder a él";
 
     public class Success {
 
