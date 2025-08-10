@@ -48,7 +48,7 @@ public class UserController {
         this.roleExternalService = roleExternalService;
     }
 
-    @GetMapping("/validate/{userId}")
+    @GetMapping("/validate/{userId}")//se usa en lm-issues
     public ResponseEntity<Boolean> validateUser(@PathVariable UUID userId) {
         Boolean exists = userService.validateUser(userId);
         return ResponseEntity.ok(exists);
@@ -145,7 +145,7 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping("/users/batch")
+    @PostMapping("/users/batch") //se usa en lm-comments, lm-projects, lm-issues
     public ResponseEntity<List<UserDtoResponse>> getUsersByIds(@RequestBody List<String> ids) {
         List<UUID> uuidList = ids.stream().map(UUID::fromString).toList();
         List<UserDtoResponse> users = userService.getUsersByIds(uuidList);
@@ -198,7 +198,7 @@ public class UserController {
     }
 
     @PostMapping("/add-user")
-    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_MY_ORGANIZATION')")
+    @PreAuthorize("hasAnyAuthority('USER_CREATE')")
     public ResponseEntity<NotificationResponse> addUser(@RequestBody UserDTO userDTO) {
         userService.addUser(userDTO);
         return ResponseEntity
@@ -207,7 +207,7 @@ public class UserController {
     }
 
     @PostMapping("/add-user-with-organization")
-    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_OTHER_ORGANIZATION')")
+    @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
     public ResponseEntity<NotificationResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {
         userService.addUserWithOrganization(userDTO);
         return ResponseEntity
@@ -215,8 +215,21 @@ public class UserController {
                 .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
     }
 
+    @GetMapping("/users/organization")
+    @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
+    public ResponseEntity<PageResponseDTO<UserDtoResponse>> getAllUsers(
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam String organizationId
+    ) {
+        UUID organizationIdUUID = UUID.fromString(organizationId);
+        PageResponseDTO<UserDtoResponse> result = userService.searchUsersByOrganizationId(search, page, size, organizationIdUUID);
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/import")
-    @PreAuthorize("hasAnyAuthority('USER_CREATE_WITH_MY_ORGANIZATION')")
+    @PreAuthorize("hasAnyAuthority('USER_CREATE')")
     public ResponseEntity<NotificationResponse> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
         userService.importUsers(file);
         return ResponseEntity

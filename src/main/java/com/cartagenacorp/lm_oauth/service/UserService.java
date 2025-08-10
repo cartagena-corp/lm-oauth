@@ -51,9 +51,15 @@ public class UserService {
         User authenticatedUser = (User) authentication.getPrincipal();
         UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
 
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> result = userRepository.searchUsers(search, authenticatedUserOrganizationId, pageable);
+        Page<UserDtoResponse> dtoPage = result.map(userMapper::toDto);
+        return new PageResponseDTO<>(dtoPage);
+    }
+
+    public PageResponseDTO<UserDtoResponse> searchUsersByOrganizationId(String search, int page, int size, UUID organizationId) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<User> result = userRepository.searchUsers(search, organizationId, pageable);
         Page<UserDtoResponse> dtoPage = result.map(userMapper::toDto);
         return new PageResponseDTO<>(dtoPage);
     }
