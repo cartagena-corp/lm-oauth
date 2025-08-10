@@ -76,15 +76,25 @@ public class UserController {
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
+                    UUID userId = user.getId();
+                    String email = user.getEmail();
+                    String givenName = user.getFirstName();
+                    String familyName = user.getLastName();
+                    String picture = user.getPicture();
+                    String role = user.getRole();
+                    UUID organizationId = user.getOrganizationId();
+
+                    List<String> permissions = roleExternalService.getPermissionsByRole(role, organizationId);
+
                     String newJwt = jwtTokenUtil.generateToken(
-                            user.getId().toString(),
-                            user.getEmail(),
-                            user.getFirstName(),
-                            user.getLastName(),
-                            user.getPicture(),
-                            user.getRole(),
-                            roleExternalService.getPermissionsByRole(user.getRole()),
-                            user.getOrganizationId()
+                            userId.toString(),
+                            email,
+                            givenName,
+                            familyName,
+                            picture,
+                            role,
+                            permissions,
+                            organizationId
                     );
                     return ResponseEntity.ok(Map.of(
                             "accessToken", newJwt

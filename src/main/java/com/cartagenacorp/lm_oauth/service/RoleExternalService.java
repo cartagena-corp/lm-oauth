@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -32,13 +33,13 @@ public class RoleExternalService {
         this.restTemplate = restTemplate;
     }
 
-    public List<String> getPermissionsByRole(String role) {
-        logger.debug("Validando los permisos del rol: {}", role);
+    public List<String> getPermissionsByRole(String role, UUID organizationId) {
+        logger.debug("Validando los permisos del rol: {} para la organización: {}", role, organizationId);
         if (role == null) {
             return Collections.emptyList();
         }
         try {
-            String url = roleServiceUrl + "/" + role;
+            String url = String.format("%s/%s/%s", roleServiceUrl, organizationId.toString(), role);
             ResponseEntity<RoleDTO> response = restTemplate.getForEntity(url, RoleDTO.class);
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -58,8 +59,8 @@ public class RoleExternalService {
         return Collections.emptyList();
     }
 
-    public boolean roleExists(String role, String token) {
-        logger.debug("Validando existencia del rol: {}", role);
+    public boolean roleExists(String role, UUID organizationId, String token) {
+        logger.debug("Validando existencia del rol: {} para la organización: {}", role, organizationId);
         try {
             String url = roleServiceUrl + "/exists/" + role;
 

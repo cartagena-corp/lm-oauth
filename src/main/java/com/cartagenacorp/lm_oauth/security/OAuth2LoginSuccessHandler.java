@@ -62,8 +62,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         User user = userRepository.findById(userId).orElseThrow();
 
         String role = user.getRole();
-        List<String> permissions = roleExternalService.getPermissionsByRole(role);
         UUID organizationId = user.getOrganizationId();
+        List<String> permissions = roleExternalService.getPermissionsByRole(role, organizationId);
 
         String token = jwtTokenUtil.generateToken(userId.toString(), email, givenName, familyName, picture, role, permissions, organizationId);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userId);

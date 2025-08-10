@@ -68,7 +68,7 @@ public class UserService {
             token = (String) authentication.getCredentials();
         }
 
-        if (!roleExternalService.roleExists(roleName, token )) {
+        if (!roleExternalService.roleExists(roleName, authenticatedUserOrganizationId, token )) {
             throw new BaseException(ConstantUtil.ROLE_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
         }
 
