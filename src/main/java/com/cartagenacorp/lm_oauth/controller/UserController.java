@@ -129,6 +129,7 @@ public class UserController {
     }
 
     @GetMapping("/users")
+    @PreAuthorize("hasAnyAuthority('USER_READ')")
     public ResponseEntity<PageResponseDTO<UserDtoResponse>> getAllUsers(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "0") int page,
@@ -139,6 +140,7 @@ public class UserController {
     }
 
     @GetMapping("/user/{id}")
+    @PreAuthorize("hasAnyAuthority('USER_READ')")
     public ResponseEntity<?> getUserById(@PathVariable String id) {
         UUID uuid = UUID.fromString(id);
         UserDtoResponse user = userService.getUserById(uuid);
@@ -153,7 +155,7 @@ public class UserController {
     }
 
     @PutMapping("/user/{id}/role")
-    @PreAuthorize("hasAnyAuthority('ROLE_CRUD', 'ROLE_UPDATE')")
+    @PreAuthorize("hasAnyAuthority('USER_UPDATE')")
     public ResponseEntity<NotificationResponse> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
         UUID uuid = UUID.fromString(id);
         userService.assignRoleToUser(uuid, roleName);
