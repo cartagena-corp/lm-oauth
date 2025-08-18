@@ -64,7 +64,7 @@ public class UserService {
         return new PageResponseDTO<>(dtoPage);
     }
 
-    public void assignRoleToUser(UUID userId, String roleName) {
+    public UserDtoResponse assignRoleToUser(UUID userId, String roleName) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User authenticatedUser = (User) authentication.getPrincipal();
         UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
@@ -82,7 +82,8 @@ public class UserService {
                 .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
 
         user.setRole(roleName);
-        userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
     }
 
     public UserDtoResponse getUserById(UUID id) {
