@@ -74,6 +74,13 @@ public class UserService {
             token = (String) authentication.getCredentials();
         }
 
+        String superAdminRole = "SUPER_ADMIN";
+
+        if (superAdminRole.equalsIgnoreCase(roleName)
+                && !superAdminRole.equals(authenticatedUser.getRole())) {
+            throw new BaseException(ConstantUtil.EXCLUSIVE_SUPER_ADMIN_ROL, HttpStatus.FORBIDDEN.value());
+        }
+
         if (!roleExternalService.roleExists(roleName, authenticatedUserOrganizationId, token )) {
             throw new BaseException(ConstantUtil.ROLE_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
         }
