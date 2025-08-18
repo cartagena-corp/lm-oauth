@@ -201,20 +201,18 @@ public class UserController {
 
     @PostMapping("/add-user")
     @PreAuthorize("hasAnyAuthority('USER_CREATE')")
-    public ResponseEntity<NotificationResponse> addUser(@RequestBody UserDTO userDTO) {
-        userService.addUser(userDTO);
+    public ResponseEntity<UserDtoResponse> addUser(@RequestBody UserDTO userDTO) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
+                .body(userService.addUser(userDTO));
     }
 
     @PostMapping("/add-user-with-organization")
     @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
-    public ResponseEntity<NotificationResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {
-        userService.addUserWithOrganization(userDTO);
+    public ResponseEntity<UserDtoResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ResponseUtil.success(ConstantUtil.Success.USER_CREATED, HttpStatus.CREATED));
+                .body(userService.addUserWithOrganization(userDTO));
     }
 
     @GetMapping("/users/organization")

@@ -104,7 +104,7 @@ public class UserService {
         return users.stream().map(userMapper::toDto).toList();
     }
 
-    public void addUser(UserDTO userDTO) {
+    public UserDtoResponse addUser(UserDTO userDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();
 
@@ -116,14 +116,15 @@ public class UserService {
             }
 
             userDTO.setOrganizationId(organizationId);
-            userRepository.save(userMapper.userDTOToUser(userDTO));
+            User savedUser = userRepository.save(userMapper.userDTOToUser(userDTO));
+            return userMapper.toDto(savedUser);
         }
         else {
             throw new BaseException(ConstantUtil.PERMISSION_DENIED, HttpStatus.UNAUTHORIZED.value());
         }
     }
 
-    public void addUserWithOrganization(UserDTO userDTO) {
+    public UserDtoResponse addUserWithOrganization(UserDTO userDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         String token = null;
@@ -139,7 +140,8 @@ public class UserService {
             throw new BaseException(ConstantUtil.DUPLICATE_EMAIL, HttpStatus.BAD_REQUEST.value());
         }
 
-        userRepository.save(userMapper.userDTOToUser(userDTO));
+        User savedUser = userRepository.save(userMapper.userDTOToUser(userDTO));
+        return userMapper.toDto(savedUser);
     }
 
     public void importUsers(MultipartFile file) {
