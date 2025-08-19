@@ -4,12 +4,11 @@ import com.cartagenacorp.lm_oauth.entity.RefreshToken;
 import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import com.cartagenacorp.lm_oauth.service.RefreshTokenService;
-import com.cartagenacorp.lm_oauth.service.RoleService;
+import com.cartagenacorp.lm_oauth.service.RoleExternalService;
 import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -23,23 +22,30 @@ import java.util.UUID;
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleService roleService;
-
-    @Autowired
-    private RefreshTokenService refreshTokenService;
-
     @Value("${app.jwt.refreshExpiration}")
     private long refreshExpirationMs;
 
     @Value("${app.oauth2.redirect-url}")
     private String oauth2RedirectUrl;
+
+    private final JwtTokenUtil jwtTokenUtil;
+
+    private final UserRepository userRepository;
+
+    private final RoleExternalService roleExternalService;
+
+    private final RefreshTokenService refreshTokenService;
+
+    public OAuth2LoginSuccessHandler(JwtTokenUtil jwtTokenUtil,
+                                     UserRepository userRepository,
+                                     RoleExternalService roleExternalService,
+                                     RefreshTokenService refreshTokenService) {
+        this.jwtTokenUtil = jwtTokenUtil;
+        this.userRepository = userRepository;
+        this.roleExternalService = roleExternalService;
+        this.refreshTokenService = refreshTokenService;
+    }
+
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
@@ -56,9 +62,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         User user = userRepository.findById(userId).orElseThrow();
 
         String role = user.getRole();
-        List<String> permissions = roleService.getPermissionsByRole(role);
+        UUID organizationId = user.getOrganizationId();
+        List<String> permissions = roleExternalService.getPermissionsByRole(role, organizationId);
 
-        String token = jwtTokenUtil.generateToken(userId.toString(), email, givenName, familyName, picture, role, permissions);
+        String token = jwtTokenUtil.generateToken(userId.toString(), email, givenName, familyName, picture, role, permissions, organizationId);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userId);
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken.getToken())

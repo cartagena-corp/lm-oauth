@@ -1,5 +1,6 @@
 package com.cartagenacorp.lm_oauth.controller;
 
+import com.cartagenacorp.lm_oauth.dto.NotificationResponse;
 import com.cartagenacorp.lm_oauth.dto.PageResponseDTO;
 import com.cartagenacorp.lm_oauth.dto.UserDTO;
 import com.cartagenacorp.lm_oauth.entity.RefreshToken;
@@ -7,10 +8,11 @@ import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.dto.UserDtoResponse;
 import com.cartagenacorp.lm_oauth.repository.UserRepository;
 import com.cartagenacorp.lm_oauth.service.RefreshTokenService;
-import com.cartagenacorp.lm_oauth.service.RoleService;
+import com.cartagenacorp.lm_oauth.service.RoleExternalService;
 import com.cartagenacorp.lm_oauth.service.UserService;
+import com.cartagenacorp.lm_oauth.util.ConstantUtil;
 import com.cartagenacorp.lm_oauth.util.JwtTokenUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.cartagenacorp.lm_oauth.util.ResponseUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -35,29 +37,28 @@ public class UserController {
     private final UserService userService;
     private final JwtTokenUtil jwtTokenUtil;
     private final RefreshTokenService refreshTokenService;
-    private final RoleService roleService;
+    private final RoleExternalService roleExternalService;
 
-    @Autowired
     public UserController(UserRepository userRepository, UserService userService, JwtTokenUtil jwtTokenUtil,
-                          RefreshTokenService refreshTokenService, RoleService roleService) {
+                          RefreshTokenService refreshTokenService, RoleExternalService roleExternalService) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.jwtTokenUtil = jwtTokenUtil;
         this.refreshTokenService = refreshTokenService;
-        this.roleService = roleService;
+        this.roleExternalService = roleExternalService;
     }
 
-    @GetMapping("/validate/{userId}")
+    @GetMapping("/validate/{userId}")//se usa en lm-issues
     public ResponseEntity<Boolean> validateUser(@PathVariable UUID userId) {
-        boolean exists = userRepository.existsById(userId);
+        Boolean exists = userService.validateUser(userId);
         return ResponseEntity.ok(exists);
     }
 
     @GetMapping("/token")
-    public ResponseEntity<String> getUserIdFromToken() {
+    public ResponseEntity<UUID> getUserIdFromToken() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
-        return ResponseEntity.ok(user.getId().toString());
+        return ResponseEntity.ok(user.getId());
     }
 
     @GetMapping("/validate/token")
@@ -75,14 +76,25 @@ public class UserController {
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
+                    UUID userId = user.getId();
+                    String email = user.getEmail();
+                    String givenName = user.getFirstName();
+                    String familyName = user.getLastName();
+                    String picture = user.getPicture();
+                    String role = user.getRole();
+                    UUID organizationId = user.getOrganizationId();
+
+                    List<String> permissions = roleExternalService.getPermissionsByRole(role, organizationId);
+
                     String newJwt = jwtTokenUtil.generateToken(
-                            user.getId().toString(),
-                            user.getEmail(),
-                            user.getFirstName(),
-                            user.getLastName(),
-                            user.getPicture(),
-                            user.getRole(),
-                            roleService.getPermissionsByRole(user.getRole())
+                            userId.toString(),
+                            email,
+                            givenName,
+                            familyName,
+                            picture,
+                            role,
+                            permissions,
+                            organizationId
                     );
                     return ResponseEntity.ok(Map.of(
                             "accessToken", newJwt
@@ -117,6 +129,7 @@ public class UserController {
     }
 
     @GetMapping("/users")
+    @PreAuthorize("hasAnyAuthority('USER_READ')")
     public ResponseEntity<PageResponseDTO<UserDtoResponse>> getAllUsers(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(defaultValue = "0") int page,
@@ -127,13 +140,14 @@ public class UserController {
     }
 
     @GetMapping("/user/{id}")
+    @PreAuthorize("hasAnyAuthority('USER_READ')")
     public ResponseEntity<?> getUserById(@PathVariable String id) {
         UUID uuid = UUID.fromString(id);
         UserDtoResponse user = userService.getUserById(uuid);
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping("/users/batch")
+    @PostMapping("/users/batch") //se usa en lm-comments, lm-projects, lm-issues (uso interno)
     public ResponseEntity<List<UserDtoResponse>> getUsersByIds(@RequestBody List<String> ids) {
         List<UUID> uuidList = ids.stream().map(UUID::fromString).toList();
         List<UserDtoResponse> users = userService.getUsersByIds(uuidList);
@@ -141,14 +155,15 @@ public class UserController {
     }
 
     @PutMapping("/user/{id}/role")
-    @PreAuthorize("hasAuthority('ROLE_CRUD')")
-    public ResponseEntity<?> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
+    @PreAuthorize("hasAnyAuthority('USER_UPDATE')")
+    public ResponseEntity<UserDtoResponse> assignRoleToUser(@PathVariable String id, @RequestBody String roleName) {
         UUID uuid = UUID.fromString(id);
-        userService.assignRoleToUser(uuid, roleName);
-        return ResponseEntity.ok().build();
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.assignRoleToUser(uuid, roleName));
     }
 
-    @GetMapping("/users/resolve")
+    @GetMapping("/users/resolve") // se usa en lm-integration (uso interno)
     public ResponseEntity<UUID> resolveUser(@RequestParam(required = false) String identifier) {
 
         if (identifier == null || identifier.isBlank()) {
@@ -184,18 +199,40 @@ public class UserController {
     }
 
     @PostMapping("/add-user")
-    public ResponseEntity<String> addUser(@RequestBody UserDTO userDTO) {
-        userService.addUser(userDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User added successfully");
+    @PreAuthorize("hasAnyAuthority('USER_CREATE')")
+    public ResponseEntity<UserDtoResponse> addUser(@RequestBody UserDTO userDTO) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(userService.addUser(userDTO));
+    }
+
+    @PostMapping("/add-user-with-organization")
+    @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
+    public ResponseEntity<UserDtoResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(userService.addUserWithOrganization(userDTO));
+    }
+
+    @GetMapping("/users/organization")
+    @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
+    public ResponseEntity<PageResponseDTO<UserDtoResponse>> getAllUsers(
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam String organizationId
+    ) {
+        UUID organizationIdUUID = UUID.fromString(organizationId);
+        PageResponseDTO<UserDtoResponse> result = userService.searchUsersByOrganizationId(search, page, size, organizationIdUUID);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/import")
-    public ResponseEntity<String> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
-        try {
-            userService.importUsers(file);
-            return ResponseEntity.ok("Users imported successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error importing users: " + e.getMessage());
-        }
+    @PreAuthorize("hasAnyAuthority('USER_CREATE')")
+    public ResponseEntity<NotificationResponse> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
+        userService.importUsers(file);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResponseUtil.success(ConstantUtil.Success.USERS_IMPORT, HttpStatus.OK));
     }
 }

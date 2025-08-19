@@ -20,12 +20,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
 
+    Optional<User> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
     @Query("""
         SELECT u FROM User u
-        WHERE LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))
+        WHERE u.organizationId = :organizationId
+           AND (LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))
            OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
            OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
-           OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
     """)
-    Page<User> searchUsers(String search, Pageable pageable);
+    Page<User> searchUsers(String search, UUID organizationId, Pageable pageable);
 }
