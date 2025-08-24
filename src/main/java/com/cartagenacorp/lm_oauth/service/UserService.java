@@ -152,6 +152,31 @@ public class UserService {
         return userMapper.toDto(savedUser);
     }
 
+    public UserDtoResponse changeUserOrganization(UserDTO userDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String token = null;
+        if (authentication != null) {
+            token = (String) authentication.getCredentials();
+        }
+
+        if (!organizationExternalService.organizationExists(userDTO.getOrganizationId(), token)) {
+            throw new BaseException(ConstantUtil.ORGANIZATION_NOT_FOUND, HttpStatus.BAD_REQUEST.value());
+        }
+
+        User user = userRepository.findById(userDTO.getId())
+                .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        user.setRole(null);
+        user.setOrganizationId(userDTO.getOrganizationId());
+        if (userDTO.getRole() != null) {
+            user.setRole(userDTO.getRole());
+        }
+
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
+    }
+
     public void importUsers(MultipartFile file) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Object principal = authentication.getPrincipal();

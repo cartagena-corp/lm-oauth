@@ -227,6 +227,13 @@ public class UserController {
         return ResponseEntity.ok(result);
     }
 
+    @PatchMapping("/change-organization")
+    @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
+    public ResponseEntity<UserDtoResponse> changeUserOrganization(@RequestBody UserDTO userDTO) {
+        UserDtoResponse response = userService.changeUserOrganization(userDTO);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/import")
     @PreAuthorize("hasAnyAuthority('USER_CREATE')")
     public ResponseEntity<NotificationResponse> importUsersFromExcel(@RequestParam("file") MultipartFile file) {
