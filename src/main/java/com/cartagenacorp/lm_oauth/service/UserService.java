@@ -152,6 +152,17 @@ public class UserService {
         return userMapper.toDto(savedUser);
     }
 
+    public void deleteUser(UUID id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+        UUID authenticatedUserOrganizationId = authenticatedUser.getOrganizationId();
+
+        User user = userRepository.findByIdAndOrganizationId(id, authenticatedUserOrganizationId)
+                .orElseThrow(() -> new BaseException(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        userRepository.delete(user);
+    }
+
     public UserDtoResponse changeUserOrganization(UserDTO userDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

@@ -206,6 +206,16 @@ public class UserController {
                 .body(userService.addUser(userDTO));
     }
 
+    @DeleteMapping("/user/{id}")
+    @PreAuthorize("hasAnyAuthority('USER_DELETE')")
+    public ResponseEntity<NotificationResponse> deleteUser(@PathVariable String id) {
+        UUID uuid = UUID.fromString(id);
+        userService.deleteUser(uuid);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResponseUtil.success(ConstantUtil.Success.USER_DELETED, HttpStatus.OK));
+    }
+
     @PostMapping("/add-user-with-organization")
     @PreAuthorize("hasAnyAuthority('ORGANIZATION_CONTROL')")
     public ResponseEntity<UserDtoResponse> addUserWithOrganization(@RequestBody UserDTO userDTO) {

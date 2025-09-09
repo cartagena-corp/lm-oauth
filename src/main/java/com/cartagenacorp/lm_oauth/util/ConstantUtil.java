@@ -23,6 +23,7 @@ public class ConstantUtil {
     public class Success {
 
         public static final String USER_CREATED = "Usuario creado correctamente";
+        public static final String USER_DELETED = "Usuario eliminado correctamente";
         public static final String USERS_IMPORT = "Usuarios importados correctamente";
         public static final String ROLE_ASSIGNED = "Rol del usuario actualizado";
         public static final String USERS_OBTAINED = "Listado de usuarios obtenido";
