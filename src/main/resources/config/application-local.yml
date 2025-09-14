@@ -18,11 +18,18 @@ spring:
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: email,profile
             redirect-uri: http://localhost:8081/login/oauth2/code/google
+aws:
+  accessKeyId: ${ACCESS_KEY_ID}
+  secretKey: ${SECRET_ACCESS_KEY}
+  region: ${REGION}
+  ses:
+    sender-email: ${SENDER_EMAIL}
 server:
   port: 8081
 app:
   oauth2:
-    redirect-url: http://tu-frontend-url/oauth2/redirect
+    redirect-url: http://tu-frontend-url/login/callback
+    redirect-url-error: http://tu-frontend-url/login/error
   cors:
     allowed-origins: http://localhost:3000
   jwt:

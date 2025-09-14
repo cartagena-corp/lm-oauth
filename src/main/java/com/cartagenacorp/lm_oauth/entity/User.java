@@ -44,4 +44,11 @@ public class User {
 
     @Column(name = "organization_id")
     private UUID organizationId;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "registered", nullable = false)
+    private boolean registered = false;
+
 }

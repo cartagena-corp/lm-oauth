@@ -22,11 +22,18 @@ spring:
               - profile
             ##redirect-uri: http://localhost:8081/login/oauth2/code/google
             redirect-uri: https://lm-oauth.cartagenacorporation.com/login/oauth2/code/google
+aws:
+  accessKeyId: ${ACCESS_KEY_ID}
+  secretKey: ${SECRET_ACCESS_KEY}
+  region: ${REGION}
+  ses:
+    sender-email: ${SENDER_EMAIL}
 server:
   port: 8081
 app:
   oauth2:
     redirect-url: https://cartagenacorporation.com/login/callback
+    redirect-url-error: https://cartagenacorporation.com/login/error
   cors:
     allowed-origins: https://cartagenacorporation.com,https://www.cartagenacorporation.com
   jwt:
