@@ -3,14 +3,20 @@ package com.cartagenacorp.lm_oauth.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+
+    private static final String COMPANY_NAME = "La Muralla";
 
     @Value("${aws.ses.sender-email}")
     private String senderEmail;
@@ -67,17 +73,30 @@ public class EmailService {
         }
     }
 
-    public void sendOtpEmail(String recipientEmail, String otp) {
+    public void sendOtpEmail(String recipientEmail, String otp) throws IOException {
         String subject = "Tu código de verificación";
-        String bodyHtml = String.format(
-                "<h1>Código de Verificación</h1><p>Tu código de un solo uso (OTP) es: <strong>%s</strong></p><p>Este código expirará pronto.</p>",
-                otp
-        );
+
+        String bodyHtml;
+        try {
+            bodyHtml = loadTemplate("static/otp-template.html")
+                    .replace("{{OTP}}", otp)
+                    .replace("{{COMPANY}}", COMPANY_NAME);
+        } catch (IOException e) {
+            logger.error("[EmailService] Error al cargar la plantilla de email: {}", e.getMessage());
+            throw e;
+        }
+
         String bodyText = String.format(
-                "Código de Verificación\nTu código de un solo uso (OTP) es: %s\nEste código expirará pronto.",
-                otp
+                "Código de Verificación\nTu código de un solo uso (OTP) es: %s\nExpira en 2 minutos.\n%s",
+                otp, COMPANY_NAME
         );
+
         sendEmail(recipientEmail, subject, bodyHtml, bodyText);
+    }
+
+    private String loadTemplate(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
+        return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
     }
 
     public void shutdown() {

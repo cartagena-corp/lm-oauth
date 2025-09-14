@@ -6,6 +6,7 @@ import com.cartagenacorp.lm_oauth.dto.OtpResponse;
 import com.cartagenacorp.lm_oauth.dto.RegisterRequestDto;
 import com.cartagenacorp.lm_oauth.entity.Otp;
 import com.cartagenacorp.lm_oauth.entity.OtpFunctionality;
+import com.cartagenacorp.lm_oauth.entity.User;
 import com.cartagenacorp.lm_oauth.exceptions.BaseException;
 import com.cartagenacorp.lm_oauth.repository.OtpFunctionalityRepository;
 import com.cartagenacorp.lm_oauth.repository.OtpRepository;
@@ -47,8 +48,11 @@ public class OtpService {
     public OtpResponse generateOtp(OtpRequest otpRequest){
         logger.info("=== [OtpService] Iniciando flujo de generación de OTP ===");
 
-        if(!userRepository.existsByEmail(otpRequest.getRegisterRequestDto().getEmail())){
-            throw new BaseException("El usuario no está autorizado. Contacta al administrador.", HttpStatus.UNAUTHORIZED.value());
+        User user = userRepository.findByEmail(otpRequest.getRegisterRequestDto().getEmail())
+                .orElseThrow(() -> new BaseException("El usuario no está autorizado. Contacta al administrador.", HttpStatus.UNAUTHORIZED.value()));
+
+        if (user.isRegistered()) {
+            throw new BaseException("El usuario ya completó su registro", HttpStatus.BAD_REQUEST.value());
         }
 
         OtpFunctionality otpFunctionality = otpFunctionalityRepository.findByName(otpRequest.getFunctionality().getName())
@@ -85,6 +89,8 @@ public class OtpService {
         );
 
         try {
+            System.out.println("OTP para " + otpRequest.getRegisterRequestDto().getEmail() + ": " + codeGenerated +
+                    " y encriptada: " + CryptoUtil.encrypt(codeGenerated, passphraseMD5));
             emailService.sendOtpEmail(otpRequest.getRegisterRequestDto().getEmail(), codeGenerated);
         } catch (Exception ex) {
             throw new BaseException("Error al enviar email", HttpStatus.INTERNAL_SERVER_ERROR.value());

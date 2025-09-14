@@ -4,6 +4,7 @@ import com.cartagenacorp.lm_oauth.dto.NotificationResponse;
 import com.cartagenacorp.lm_oauth.dto.OtpRequest;
 import com.cartagenacorp.lm_oauth.dto.OtpResponse;
 import com.cartagenacorp.lm_oauth.service.OtpService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class OtpController {
     }
 
     @PostMapping("/generate")
-    public HttpEntity<NotificationResponse> generateOTP(@RequestBody OtpRequest request){
+    public HttpEntity<NotificationResponse> generateOTP(@Valid @RequestBody OtpRequest request){
         OtpResponse otpResponse =  otpService.generateOtp(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)

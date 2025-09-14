@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -39,10 +40,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public void login(@Valid @RequestBody LoginRequestDto loginRequestDto, HttpServletResponse response) throws IOException {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto loginRequestDto, HttpServletResponse response) throws IOException {
         String accessToken = authService.authenticateUser(loginRequestDto, response);
-
-        String redirectUrl = oauth2RedirectUrl + "?token=" + accessToken;
-        response.sendRedirect(redirectUrl);
+        return ResponseEntity.ok().body(Map.of("accessToken", accessToken));
     }
 }
