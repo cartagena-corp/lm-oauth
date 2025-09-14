@@ -89,8 +89,6 @@ public class OtpService {
         );
 
         try {
-            System.out.println("OTP para " + otpRequest.getRegisterRequestDto().getEmail() + ": " + codeGenerated +
-                    " y encriptada: " + CryptoUtil.encrypt(codeGenerated, passphraseMD5));
             emailService.sendOtpEmail(otpRequest.getRegisterRequestDto().getEmail(), codeGenerated);
         } catch (Exception ex) {
             throw new BaseException("Error al enviar email", HttpStatus.INTERNAL_SERVER_ERROR.value());
