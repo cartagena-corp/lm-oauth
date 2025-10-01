@@ -4,6 +4,7 @@ import com.cartagenacorp.lm_oauth.entity.User;
 import lombok.Value;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -17,4 +18,5 @@ public class UserDtoResponse implements Serializable {
     String picture;
     String email;
     String role;
+    LocalDateTime createdAt;
 }

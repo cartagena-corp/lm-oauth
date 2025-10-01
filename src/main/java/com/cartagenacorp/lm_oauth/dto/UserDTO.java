@@ -17,4 +17,5 @@ public class UserDTO {
     private String googleId;
     private String picture;
     private String role;
+    private UUID organizationId;
 }

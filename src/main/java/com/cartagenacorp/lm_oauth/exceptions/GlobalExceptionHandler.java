@@ -1,5 +1,8 @@
 package com.cartagenacorp.lm_oauth.exceptions;
 
+import com.cartagenacorp.lm_oauth.dto.NotificationResponse;
+import com.cartagenacorp.lm_oauth.util.ConstantUtil;
+import com.cartagenacorp.lm_oauth.util.ResponseUtil;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -10,53 +13,64 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<NotificationResponse> handleBaseException(BaseException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ResponseUtil.error(ex.getMessage(), HttpStatus.valueOf(ex.getStatusCode())));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(err ->
-                errors.put(err.getField(), err.getDefaultMessage())
-        );
-        return ResponseEntity.badRequest().body(errors);
+    public ResponseEntity<NotificationResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+        String combinedErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .collect(Collectors.joining(" | "));
+
+        return ResponseEntity.badRequest()
+                .body(ResponseUtil.error(combinedErrors, HttpStatus.BAD_REQUEST));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<String> handleResponseStatusException(ResponseStatusException ex) {
-        return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
+    public ResponseEntity<NotificationResponse> handleResponseStatusException(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ResponseUtil.error(ex.getReason(), (HttpStatus) ex.getStatusCode()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body("Integrity Data Error");
+    public ResponseEntity<NotificationResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ResponseUtil.error(ConstantUtil.DATA_INTEGRITY_FAIL_MESSAGE, HttpStatus.CONFLICT));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<String> handleEntityNotFound(EntityNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entity not found");
+    public ResponseEntity<NotificationResponse> handleEntityNotFound(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ResponseUtil.error(ConstantUtil.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+    public ResponseEntity<NotificationResponse> handleIllegalArgument(IllegalArgumentException ex) {
         String message = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("uuid")
-                ? "The ID provided is not a valid UUID"
-                : "Invalid parameters in the request";
+                ? ConstantUtil.INVALID_UUID
+                : ConstantUtil.INVALID_INPUT;
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+        return ResponseEntity.badRequest()
+                .body(ResponseUtil.error(message, HttpStatus.BAD_REQUEST));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<String> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: insufficient permissions");
+    public ResponseEntity<NotificationResponse> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ResponseUtil.error(ConstantUtil.PERMISSION_DENIED, HttpStatus.FORBIDDEN));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGeneralError(Exception ex) {
+    public ResponseEntity<NotificationResponse> handleGenericException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("An unexpected error occurred: " + ex.getMessage());
+                .body(ResponseUtil.error(ConstantUtil.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR));
     }
 }
