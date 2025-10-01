@@ -89,6 +89,7 @@ public class OtpService {
         );
 
         try {
+            logger.debug("Enviando OTP {} al email {}", codeGenerated, otpRequest.getRegisterRequestDto().getEmail());
             emailService.sendOtpEmail(otpRequest.getRegisterRequestDto().getEmail(), codeGenerated);
         } catch (Exception ex) {
             throw new BaseException("Error al enviar email", HttpStatus.INTERNAL_SERVER_ERROR.value());
